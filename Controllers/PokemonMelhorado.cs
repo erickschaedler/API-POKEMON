@@ -91,6 +91,16 @@ public class PokemonMelhoradoController : ControllerBase
                 Names = g.Value
             }).ToList();
 
+            // var listPokemonGroupedByColor = pokemonResults
+            //     .Where(p => string.IsNullOrWhiteSpace(p.Error))
+            //     .GroupBy(p => p.Color)
+            //     .Select(g => new PokemonGroupedByColorDto
+            //     {
+            //         Color = g.Key,
+            //         Names = g.Select(p => p.Name).ToList()
+            //     })
+            //     .ToList();
+
             stopwatch.Stop();
             var responseTime = stopwatch.ElapsedMilliseconds;
 
