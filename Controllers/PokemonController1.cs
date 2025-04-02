@@ -54,7 +54,7 @@ public class PokemonController1 : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Erro interno ao consultar pokemons: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Erro interno ao consultar os pokemons: {ex.Message}");
         }
     }
 }
