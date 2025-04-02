@@ -43,7 +43,13 @@ public class PokemonController1 : ControllerBase
             if(results == null || !results.Any())
                 throw new Exception("Objeto `results` que contém os pokemosn está inválido");
 
-            return Ok(results);
+            var tasks = results.Select<APokemonResult, Task<(string Name, string Color, string Error)>>(
+                async (APokemonResult pokemon) => 
+                {
+                    var pokemonName = pokemon.name;
+                    if(string.IsNullOrWhiteSpace(pokemonName))
+                        return (Name: null, Color: null, Error)
+                });
         }
         catch(ArgumentException aex)
         {
