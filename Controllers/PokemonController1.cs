@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using API_POKEMON.Dtos;
 using System.Text.Json;
 
 namespace API_POKEMON.Controllers;
@@ -61,7 +60,7 @@ public class PokemonController1 : ControllerBase
         }
         catch (Exception ex)
         {
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Erro interno ao consultar pokemons: {ex.Message}");
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Erro interno ao consultar os pokemons: {ex.Message}");
         }
     }
 }
