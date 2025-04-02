@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using API_POKEMON.Dtos;
 using System.Text.Json;
 
 namespace API_POKEMON.Controllers;
