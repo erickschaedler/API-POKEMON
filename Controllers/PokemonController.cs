@@ -13,11 +13,11 @@ public class PokemonController1 : ControllerBase
     private readonly string _connectionString = "User Id=seuUsuario;Password=suaSenha;Data Source=seuDataSource";
 
     [HttpGet]
-    public IActionResult ListarPokemons()
+    public ActionResult ListarPokemons()
     {
         var pokemons = new List<PokemonCorDto>();
 
-        using (OracleConnection conn = new OracleConnection(_connectionString))
+        using (OracleConnection conn = new(_connectionString))
         {
             conn.Open();
             string query = @"
@@ -26,7 +26,7 @@ public class PokemonController1 : ControllerBase
                     JOIN CORES c ON p.ID_COR = c.ID_COR
                 ";
 
-            using OracleCommand cmd = new OracleCommand(query, conn);
+            using OracleCommand cmd = new(query, conn);
             using OracleDataReader reader = cmd.ExecuteReader();
             while (reader.Read())
             {
