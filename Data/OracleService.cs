@@ -25,35 +25,32 @@ public class OraclePersistenceService
     {
         try
         {
-            using (var connection = new OracleConnection(_connectionString))
+            using var connection = new OracleConnection(_connectionString);
+            connection.Open();
+
+            foreach (var group in pokemonGroups)
             {
-                connection.Open();
+                using var command = connection.CreateCommand();
+                command.CommandText = "INSERT INTO pokemon_colors (color, names) VALUES (:color, :names)";
 
-                foreach (var group in pokemonGroups)
+                // Adiciona o parâmetro para a cor
+                var colorParam = new OracleParameter("color", OracleDbType.Varchar2)
                 {
-                    using (var command = connection.CreateCommand())
-                    {
-                        command.CommandText = "INSERT INTO pokemon_colors (color, names) VALUES (:color, :names)";
+                    Value = group.Color
+                };
+                command.Parameters.Add(colorParam);
 
-                        // Adiciona o parâmetro para a cor
-                        var colorParam = new OracleParameter("color", OracleDbType.Varchar2)
-                        {
-                            Value = group.Color
-                        };
-                        command.Parameters.Add(colorParam);
+                // Converte a lista de nomes em uma única string (ex: separada por vírgulas)
+                var namesConcatenated = string.Join(", ", group.Names);
+                var namesParam = new OracleParameter("names", OracleDbType.Clob)
+                {
+                    Value = namesConcatenated
+                };
+                command.Parameters.Add(namesParam);
 
-                        // Converte a lista de nomes em uma única string (ex: separada por vírgulas)
-                        var namesConcatenated = string.Join(", ", group.Names);
-                        var namesParam = new OracleParameter("names", OracleDbType.Clob)
-                        {
-                            Value = namesConcatenated
-                        };
-                        command.Parameters.Add(namesParam);
-
-                        command.ExecuteNonQuery();
-                    }
-                }
+                command.ExecuteNonQuery();
             }
+
 
             Console.WriteLine("Dados salvos com sucesso no Oracle.");
         }
