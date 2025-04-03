@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Oracle.ManagedDataAccess.Client;
 using System.Text.Json;
+using API_POKEMON.Dtos;
+using System.Data;
 
 namespace API_POKEMON.Controllers;
 
@@ -7,30 +10,35 @@ namespace API_POKEMON.Controllers;
 [Route("[controller]")]
 public class PokemonController1 : ControllerBase
 {
-    public class ResultDto
-    {
-        public string? name { get; set; }
-    }
+    private readonly string _connectionString = "User Id=seuUsuario;Password=suaSenha;Data Source=seuDataSource";
 
-    public class ResponseGetPokemonsDto
+    [HttpGet]
+    public IActionResult ListarPokemons()
     {
-        public List<ResultDto>? results { get; set; }
-    }
+        var pokemons = new List<PokemonCorDto>();
 
-    public class ColorDto
-    {
-        public string? name { get; set; }
-    }
+        using (OracleConnection conn = new OracleConnection(_connectionString))
+        {
+            conn.Open();
+            string query = @"
+                    SELECT p.NOME_POKEMON, c.NOME_COR
+                    FROM POKEMONS p
+                    JOIN CORES c ON p.ID_COR = c.ID_COR
+                ";
 
-    public class ResultGetSpecieDto
-    {
-        public ColorDto? color { get; set; }
-    }
+            using OracleCommand cmd = new OracleCommand(query, conn);
+            using OracleDataReader reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                pokemons.Add(new PokemonCorDto
+                {
+                    Nome = reader["NOME_POKEMON"].ToString() ?? "",
+                    Cor = reader["NOME_COR"].ToString() ?? ""
+                });
+            }
+        }
 
-    public class PokemonsGroupedByColorDto
-    {
-        public string Color { get; set; } = string.Empty;
-        public List<string> Names { get; set; } = new List<string>();
+        return Ok(pokemons);
     }
 
     [HttpGet]
@@ -150,6 +158,16 @@ public class PokemonController1 : ControllerBase
             stopwatch.Stop();
             var responseTime = stopwatch.ElapsedMilliseconds;
 
+            foreach (var pokemonGroup in listPokemonsGroupedByColor)
+            {
+                var idCor = await InserirCorAsync(pokemonGroup.Color);
+
+                foreach (var pokemon in pokemonGroup.Names)
+                {
+                    await InserirPokemonNoBancoAsync(pokemon, idCor);
+                }
+            }
+
             return Ok(new { errors, listPokemonsGroupedByColor, responseTime });
         }
         catch (ArgumentException aex)
@@ -167,5 +185,66 @@ public class PokemonController1 : ControllerBase
             stopwatch.Stop();
             return StatusCode(StatusCodes.Status500InternalServerError, $"Erro interno ao consultar os pokemons: {ex.Message}");
         }
+    }
+
+    // private int InserirCor(string nomeCor)
+    // {
+    //     int idCor = 0;
+    //     using (OracleConnection conn = new(_connectionString))
+    //     {
+    //         conn.Open();
+    //         string selectQuery = "SELECT ID_COR FROM CORES WHERE NOME_COR = :nome";
+    //         string insertQuery = "INSERT INTO CORES (NOME_COR) VALUES (:nome)";
+
+    //         using (OracleCommand cmd = new(insertQuery, conn))
+    //         {
+    //             cmd.Parameters.Add(new OracleParameter("nome", nomeCor));
+    //             cmd.ExecuteNonQuery();
+    //         }
+    //         conn.Commit();
+
+    //         using (OracleCommand cmd = new(selectQuery, conn))
+    //         {
+    //             cmd.Parameters.Add(new OracleParameter("nome", nomeCor));
+    //             object result = cmd.ExecuteScalar();
+    //             if (result != null)
+    //             {
+    //                 idCor = Convert.ToInt32(result);
+    //             }
+    //         }
+    //     }
+
+    //     return idCor;
+    // }
+
+    private async Task<int> InserirCorAsync(string nomeCor)
+    {
+        using OracleConnection conn = new(_connectionString);
+        await conn.OpenAsync();
+
+        string query = "INSERT INTO CORES (NOME_COR) VALUES (:nome) RETURNING ID_COR INTO :id";
+        using OracleCommand cmd = new(query, conn);
+        cmd.Parameters.Add(new OracleParameter("nome", nomeCor));
+        OracleParameter idParam = new("id", OracleDbType.Int32, ParameterDirection.Output);
+        cmd.Parameters.Add(idParam);
+
+        await cmd.ExecuteNonQueryAsync();
+        conn.Commit();
+
+        return Convert.ToInt32(idParam.Value);
+    }
+
+    private async Task InserirPokemonNoBancoAsync(string nomePokemon, int idCor)
+    {
+        using OracleConnection conn = new(_connectionString);
+        await conn.OpenAsync();
+
+        string insertQuery = "INSERT INTO POKEMONS (NOME_POKEMON, ID_COR) VALUES (:nome, :id_cor)";
+        using OracleCommand cmd = new(insertQuery, conn);
+        cmd.Parameters.Add(new OracleParameter("nome", nomePokemon));
+        cmd.Parameters.Add(new OracleParameter("id_cor", idCor));
+
+        await cmd.ExecuteNonQueryAsync();
+        conn.Commit();
     }
 }
